@@ -1,0 +1,16 @@
+{
+  "codename": "Time128",
+  "ttf_path": "\\assets\\Digital-Desolation-Plus.otf",
+  "bin_path": "\\assets\\ui_font_Time128.bin",
+  "c_path": "\\assets\\ui_font_Time128.c",
+  "cfg_path": "\\assets\\ui_font_Time128.fcfg",
+  "size": 128,
+  "bpp": 1,
+  "letters": 0,
+  "ranges": [
+    "0x20-0x7f"
+  ],
+  "symbols": "",
+  "customparams": "--no-compress --no-prefilter",
+  "uploaded": false
+}

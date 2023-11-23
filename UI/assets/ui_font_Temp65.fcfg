@@ -1,0 +1,16 @@
+{
+  "codename": "Temp65",
+  "ttf_path": "\\assets\\Digital-Desolation-Plus.otf",
+  "bin_path": "\\assets\\ui_font_Temp65.bin",
+  "c_path": "\\assets\\ui_font_Temp65.c",
+  "cfg_path": "\\assets\\ui_font_Temp65.fcfg",
+  "size": 65,
+  "bpp": 1,
+  "letters": 0,
+  "ranges": [
+    "0x20-0x7f"
+  ],
+  "symbols": "",
+  "customparams": "--no-compress --no-prefilter",
+  "uploaded": false
+}
