@@ -6,3 +6,4 @@
 src/secrets.h
 /UI/backup/*.zip
 /UI/cache/*
+/UI/autosave/*
