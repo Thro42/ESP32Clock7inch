@@ -1,0 +1,233 @@
+#include <Wire.h>
+#include <SPI.h>
+#include <WiFi.h>
+#include <WiFiClient.h>
+#include <time.h>                   // time() ctime(
+#include <AsyncDelay.h>
+#include "display.h"
+#include <lvgl.h>
+#include "ui.h"
+#include <Arduino_GFX_Library.h>
+
+/****************************************************************************************************/
+//#define GFX_VERSION_V1_2_8
+#define GFX_VERSION_V1_4_0
+//#define GFX_VERSION_V1_3_8
+#if defined (GFX_VERSION_V1_2_8)     
+Arduino_ESP32RGBPanel *bus = new Arduino_ESP32RGBPanel(
+    GFX_NOT_DEFINED /* CS */, GFX_NOT_DEFINED /* SCK */, GFX_NOT_DEFINED /* SDA */,
+    41 /* DE */, 40 /* VSYNC */, 39 /* HSYNC */, 42 /* PCLK */,
+    14 /* R0 */, 21 /* R1 */, 47 /* R2 */, 48 /* R3 */, 45 /* R4 */,
+    9 /* G0 */, 46 /* G1 */, 3 /* G2 */, 8 /* G3 */, 16 /* G4 */, 1 /* G5 */,
+    15 /* B0 */, 7 /* B1 */, 6 /* B2 */, 5 /* B3 */, 4 /* B4 */
+);
+Arduino_RPi_DPI_RGBPanel *lcd = new Arduino_RPi_DPI_RGBPanel(
+  bus,
+    800 /* width */, 0 /* hsync_polarity */, 210 /* hsync_front_porch */, 30 /* hsync_pulse_width */, 16 /* hsync_back_porch */,
+    480 /* height */, 0 /* vsync_polarity */, 22 /* vsync_front_porch */, 13 /* vsync_pulse_width */, 10 /* vsync_back_porch */,
+    1 /* pclk_active_neg */, 16000000 /* prefer_speed */, true /* auto_flush */);
+#elif defined (GFX_VERSION_V1_3_8)
+#define GFX_BL 2
+Arduino_DataBus *bus = new Arduino_SWSPI(
+    GFX_NOT_DEFINED /* DC */, 39 /* CS */,
+    48 /* SCK */, 47 /* MOSI */, GFX_NOT_DEFINED /* MISO */);
+Arduino_ESP32RGBPanel *rgbpanel = new Arduino_ESP32RGBPanel(
+    41 /* DE */, 40 /* VSYNC */, 39 /* HSYNC */, 42 /* PCLK */,
+    14 /* R0 */, 21 /* R1 */, 47 /* R2 */, 48 /* R3 */, 45 /* R4 */,
+    9 /* G0 */, 46 /* G1 */, 3 /* G2 */, 8 /* G3 */, 16 /* G4 */, 1 /* G5 */,
+    15 /* B0 */, 7 /* B1 */, 6 /* B2 */, 5 /* B3 */, 4 /* B4 */,
+    0 /* hsync_polarity */, 180 /* hsync_front_porch */, 30 /* hsync_pulse_width */, 16 /* hsync_back_porch */,
+    0 /* vsync_polarity */, 12 /* vsync_front_porch */, 13 /* vsync_pulse_width */, 10 /* vsync_back_porch */);
+Arduino_RGB_Display *lcd = new Arduino_RGB_Display(
+    800 /* width */, 480 /* height */, rgbpanel, 0 /* rotation */, true /* auto_flush */,
+    bus, GFX_NOT_DEFINED /* RST */, st7701_type1_init_operations, sizeof(st7701_type1_init_operations));
+#elif defined (GFX_VERSION_V1_4_0)
+#define GFX_BL 2
+Arduino_ESP32RGBPanel *rgbpanel = new Arduino_ESP32RGBPanel(
+    41 /* DE */, 40 /* VSYNC */, 39 /* HSYNC */, 42 /* PCLK */,
+    14 /* R0 */, 21 /* R1 */, 47 /* R2 */, 48 /* R3 */, 45 /* R4 */,
+    9 /* G0 */, 46 /* G1 */, 3 /* G2 */, 8 /* G3 */, 16 /* G4 */, 1 /* G5 */,
+    15 /* B0 */, 7 /* B1 */, 6 /* B2 */, 5 /* B3 */, 4 /* B4 */,
+    0 /* hsync_polarity */, 180 /* hsync_front_porch */, 30 /* hsync_pulse_width */, 16 /* hsync_back_porch */,
+    0 /* vsync_polarity */, 12 /* vsync_front_porch */, 13 /* vsync_pulse_width */, 10 /* vsync_back_porch */);
+Arduino_RGB_Display *lcd = new Arduino_RGB_Display(
+    800 /* width */, 480 /* height */, rgbpanel, 0 /* rotation */, true /* auto_flush */);
+#endif
+/****************************************************************************************************/
+/* Screen Saver Settings*/
+#define TFT_BL 2
+//#define GFX_BL DF_GFX_BL // default backlight pin, you may replace DF_GFX_BL to actual backlight pin
+#define GFX_BL TFT_BL // default backlight pin, you may replace DF_GFX_BL to actual backlight pin
+
+
+
+/*******************************************************************************
+   Please config the touch panel in touch.h
+ ******************************************************************************/
+#include "touch.h"
+
+/* Change to your screen resolution */
+static uint32_t screenWidth;
+static uint32_t screenHeight;
+static lv_disp_draw_buf_t draw_buf;
+static lv_color_t disp_draw_buf[800 * 480 / 10];      //5,7inch: lv_color_t disp_draw_buf[800*480/10]            4.3inch: lv_color_t disp_draw_buf[480*272/10]
+static lv_disp_drv_t disp_drv;
+
+TimerHandle_t screenSaverTimer;
+AsyncDelay delay_1s;
+AsyncDelay delay_10s;
+
+void setupDisplay() {
+  // Init Display
+  lcd->begin();
+  lcd->fillScreen(BLACK);
+  lcd->setTextSize(2);
+  lv_init();
+
+  delay(100);
+  touch_init();
+
+  screenWidth = lcd->width();
+  screenHeight = lcd->height();
+
+  lv_disp_draw_buf_init(&draw_buf, disp_draw_buf, NULL, screenWidth * screenHeight / 10);
+  //  lv_disp_draw_buf_init(&draw_buf, disp_draw_buf, NULL, 480 * 272 / 10);
+  /* Initialize the display */
+  lv_disp_drv_init(&disp_drv);
+  /* Change the following line to your display resolution */
+  disp_drv.hor_res = screenWidth;
+  disp_drv.ver_res = screenHeight;
+  disp_drv.flush_cb = my_disp_flush;
+  disp_drv.draw_buf = &draw_buf;
+  lv_disp_drv_register(&disp_drv);
+
+  /* Initialize the (dummy) input device driver */
+  static lv_indev_drv_t indev_drv;
+  lv_indev_drv_init(&indev_drv);
+  indev_drv.type = LV_INDEV_TYPE_POINTER;
+  indev_drv.read_cb = my_touchpad_read;
+  lv_indev_drv_register(&indev_drv);
+
+  ui_init();//ui from Squareline or GUI Guider
+
+#ifdef TFT_BL
+  pinMode(TFT_BL, OUTPUT);
+  digitalWrite(TFT_BL, HIGH);
+  ledcSetup(0 /* LEDChannel */, 5000 /* freq */, 8 /* resolution */);
+  ledcAttachPin(TFT_BL, 0 /* LEDChannel */);
+  ledcWrite(0 /* LEDChannel */, 127); /* 0-255 */
+#endif
+  screenSaverTimer = xTimerCreate("saverTimer", pdMS_TO_TICKS(14000), pdFALSE, (void*)0, reinterpret_cast<TimerCallbackFunction_t>(screenSaver));
+  xTimerStart(screenSaverTimer, 0);
+
+  delay_1s.start(5000, AsyncDelay::MILLIS);
+  delay_10s.start(30000, AsyncDelay::MILLIS);
+
+}
+
+/*******************************************************************************/
+void loopDisplay() {
+  lv_timer_handler();
+  if (delay_1s.isExpired()) {
+      showLocalTime();
+      delay_1s.repeat();
+  } 
+}
+
+/* Display flushing */
+void my_disp_flush(lv_disp_drv_t *disp, const lv_area_t *area, lv_color_t *color_p)
+{
+  uint32_t w = (area->x2 - area->x1 + 1);
+  uint32_t h = (area->y2 - area->y1 + 1);
+  lcd->draw16bitRGBBitmap(area->x1, area->y1, (uint16_t *)&color_p->full, w, h);
+  lv_disp_flush_ready(disp);
+}
+
+void my_touchpad_read(lv_indev_drv_t *indev_driver, lv_indev_data_t *data)
+{
+  if (touch_has_signal())
+  {
+    if (touch_touched())
+    {
+      data->state = LV_INDEV_STATE_PR;
+
+      /*Set the coordinates*/
+      data->point.x = touch_last_x;
+      data->point.y = touch_last_y;
+    }
+    else if (touch_released())
+    {
+      data->state = LV_INDEV_STATE_REL;
+    }
+  }
+  else
+  {
+    data->state = LV_INDEV_STATE_REL;
+  }
+  delay(15);
+}
+
+/*******************************************************************************/
+void screenSaver() {
+  Serial.println("Screensaver...");
+  //digitalWrite(TFT_BL, LOW);
+  ledcWrite(0 /* LEDChannel */, 1); /* 0-255 */
+}
+/*******************************************************************************/
+void setPresence( bool presence) {
+  if(presence) {
+    xTimerStop(screenSaverTimer, 0);
+    //digitalWrite(TFT_BL, HIGH);
+    ledcWrite(0 /* LEDChannel */, 127); /* 0-255 */
+    xTimerStart(screenSaverTimer, 0);
+  } else {
+//      digitalWrite(TFT_BL, LOW);
+  }
+}
+/*******************************************************************************/
+void showLocalTime() {
+  struct tm timeinfo;
+  char buffer[20];
+  if (!getLocalTime(&timeinfo)) {
+    Serial.println( "Get Time faild" );
+    return;
+  }
+  Serial.println(&timeinfo, "%H:%M");
+  strftime(buffer, sizeof buffer, "%H:%M", &timeinfo); 
+  lv_label_set_text(ui_Time, buffer);
+}
+/*******************************************************************************/
+void outBrasilTime( String newTime) {
+  char buffer[10];
+  sprintf(buffer, "%s", newTime);
+  Serial.println(buffer);
+  lv_label_set_text(ui_LblBrTime, buffer);
+
+}
+/*******************************************************************************/
+void outInTemp( String newTemp) {
+  char buffer[10];
+  float temp = newTemp.toFloat();
+  sprintf(buffer, "%02.1f", temp);
+  Serial.println(buffer);
+  lv_label_set_text(ui_lblInTemp, buffer);
+
+}
+
+/*******************************************************************************/
+void outInHumidity( String newHuni){
+  char buffer[10];
+  float hum = newHuni.toFloat();
+  sprintf(buffer, "%02.0f%%", hum);
+  Serial.println(buffer);
+  lv_label_set_text(ui_lblInHumi, buffer);
+}
+
+/*******************************************************************************/
+void outOutTemp( String newTemp){
+  char buffer[10];
+  float temp = newTemp.toFloat();
+  sprintf(buffer, "%02.1f", temp);
+  Serial.println(buffer);
+  lv_label_set_text(ui_lblOutTemp, buffer);
+}
