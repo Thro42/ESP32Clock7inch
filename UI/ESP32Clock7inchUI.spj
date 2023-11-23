@@ -280,7 +280,7 @@
                       {
                         "nid": -225298779,
                         "strtype": "LABEL/Text",
-                        "strval": "12:00",
+                        "strval": "00:00",
                         "InheritedType": 10
                       },
                       {
@@ -305,7 +305,7 @@
                               {
                                 "nid": 923532142,
                                 "strtype": "_style/Text_Font",
-                                "strval": "Time128",
+                                "strval": "Time150",
                                 "InheritedType": 3
                               }
                             ],
@@ -9377,7 +9377,7 @@
     "theme_color2": 0,
     "exportFolderPath": "C:\\Users\\RobertThomitzek\\Dropbox\\Sourcen\\ESP32\\ESP32Clock7inch\\src\\UI",
     "projectExportFolderPath": "C:\\Users\\RobertThomitzek\\Dropbox\\Sourcen\\ESP32\\WohnUhrUI\\Ardoino",
-    "backup_cnt": 344,
+    "backup_cnt": 346,
     "autosave_cnt": 0,
     "lvgl_version": "8.3.6",
     "callfuncsexport": "C_FILE",

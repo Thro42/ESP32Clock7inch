@@ -113,3 +113,33 @@ void loopMQTT()
 bool getMQTTState( void ) {
  return mqttOnline;
 }
+
+void sendPresenceStationary(u_int16_t distace) {
+  char buff[10];
+  sprintf(buff, "%d", distace);
+  mqttClient.publish(STATIONARY_PRESENCE_TOPIC, 0, true, buff);
+}
+
+void sendPresenceMoving(u_int16_t distace) {
+  char buff[10];
+  sprintf(buff, "%d", distace);
+  mqttClient.publish(MOVING_PRESENCE_TOPIC, 0, true, buff);
+}
+void sendPresenceState(boolean presence) {
+  char buff[10];
+  sprintf(buff, "%s", presence ? "true" : "false");
+  mqttClient.publish(PRESENCE_PRESENCE_TOPIC, 0, true, buff);
+}
+
+
+void sendPresenceDistance(u_int16_t stationary, u_int16_t moving, boolean presence) {
+  char buff[128];
+  StaticJsonDocument<200> doc;
+  doc["stationary"] = stationary;
+  doc["moving"] = moving;
+  doc["presence"] = presence;
+  int b =serializeJson(doc, buff);
+  Serial.print("bytes = ");
+  Serial.println(b,DEC);
+  mqttClient.publish(ALL_PRESENCE_TOPIC, 0, true, buff);
+}
