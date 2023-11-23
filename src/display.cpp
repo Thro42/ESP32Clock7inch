@@ -10,38 +10,6 @@
 #include <Arduino_GFX_Library.h>
 
 /****************************************************************************************************/
-//#define GFX_VERSION_V1_2_8
-#define GFX_VERSION_V1_4_0
-//#define GFX_VERSION_V1_3_8
-#if defined (GFX_VERSION_V1_2_8)     
-Arduino_ESP32RGBPanel *bus = new Arduino_ESP32RGBPanel(
-    GFX_NOT_DEFINED /* CS */, GFX_NOT_DEFINED /* SCK */, GFX_NOT_DEFINED /* SDA */,
-    41 /* DE */, 40 /* VSYNC */, 39 /* HSYNC */, 42 /* PCLK */,
-    14 /* R0 */, 21 /* R1 */, 47 /* R2 */, 48 /* R3 */, 45 /* R4 */,
-    9 /* G0 */, 46 /* G1 */, 3 /* G2 */, 8 /* G3 */, 16 /* G4 */, 1 /* G5 */,
-    15 /* B0 */, 7 /* B1 */, 6 /* B2 */, 5 /* B3 */, 4 /* B4 */
-);
-Arduino_RPi_DPI_RGBPanel *lcd = new Arduino_RPi_DPI_RGBPanel(
-  bus,
-    800 /* width */, 0 /* hsync_polarity */, 210 /* hsync_front_porch */, 30 /* hsync_pulse_width */, 16 /* hsync_back_porch */,
-    480 /* height */, 0 /* vsync_polarity */, 22 /* vsync_front_porch */, 13 /* vsync_pulse_width */, 10 /* vsync_back_porch */,
-    1 /* pclk_active_neg */, 16000000 /* prefer_speed */, true /* auto_flush */);
-#elif defined (GFX_VERSION_V1_3_8)
-#define GFX_BL 2
-Arduino_DataBus *bus = new Arduino_SWSPI(
-    GFX_NOT_DEFINED /* DC */, 39 /* CS */,
-    48 /* SCK */, 47 /* MOSI */, GFX_NOT_DEFINED /* MISO */);
-Arduino_ESP32RGBPanel *rgbpanel = new Arduino_ESP32RGBPanel(
-    41 /* DE */, 40 /* VSYNC */, 39 /* HSYNC */, 42 /* PCLK */,
-    14 /* R0 */, 21 /* R1 */, 47 /* R2 */, 48 /* R3 */, 45 /* R4 */,
-    9 /* G0 */, 46 /* G1 */, 3 /* G2 */, 8 /* G3 */, 16 /* G4 */, 1 /* G5 */,
-    15 /* B0 */, 7 /* B1 */, 6 /* B2 */, 5 /* B3 */, 4 /* B4 */,
-    0 /* hsync_polarity */, 180 /* hsync_front_porch */, 30 /* hsync_pulse_width */, 16 /* hsync_back_porch */,
-    0 /* vsync_polarity */, 12 /* vsync_front_porch */, 13 /* vsync_pulse_width */, 10 /* vsync_back_porch */);
-Arduino_RGB_Display *lcd = new Arduino_RGB_Display(
-    800 /* width */, 480 /* height */, rgbpanel, 0 /* rotation */, true /* auto_flush */,
-    bus, GFX_NOT_DEFINED /* RST */, st7701_type1_init_operations, sizeof(st7701_type1_init_operations));
-#elif defined (GFX_VERSION_V1_4_0)
 #define GFX_BL 2
 Arduino_ESP32RGBPanel *rgbpanel = new Arduino_ESP32RGBPanel(
     41 /* DE */, 40 /* VSYNC */, 39 /* HSYNC */, 42 /* PCLK */,
@@ -52,13 +20,10 @@ Arduino_ESP32RGBPanel *rgbpanel = new Arduino_ESP32RGBPanel(
     0 /* vsync_polarity */, 12 /* vsync_front_porch */, 13 /* vsync_pulse_width */, 10 /* vsync_back_porch */);
 Arduino_RGB_Display *lcd = new Arduino_RGB_Display(
     800 /* width */, 480 /* height */, rgbpanel, 0 /* rotation */, true /* auto_flush */);
-#endif
 /****************************************************************************************************/
 /* Screen Saver Settings*/
 #define TFT_BL 2
-//#define GFX_BL DF_GFX_BL // default backlight pin, you may replace DF_GFX_BL to actual backlight pin
-#define GFX_BL TFT_BL // default backlight pin, you may replace DF_GFX_BL to actual backlight pin
-
+TimerHandle_t screenSaverTimer;
 
 
 /*******************************************************************************
@@ -73,9 +38,7 @@ static lv_disp_draw_buf_t draw_buf;
 static lv_color_t disp_draw_buf[800 * 480 / 10];      //5,7inch: lv_color_t disp_draw_buf[800*480/10]            4.3inch: lv_color_t disp_draw_buf[480*272/10]
 static lv_disp_drv_t disp_drv;
 
-TimerHandle_t screenSaverTimer;
 AsyncDelay delay_1s;
-AsyncDelay delay_10s;
 
 void setupDisplay() {
   // Init Display
@@ -110,19 +73,18 @@ void setupDisplay() {
 
   ui_init();//ui from Squareline or GUI Guider
 
+/* Screen Saver Setup*/
 #ifdef TFT_BL
   pinMode(TFT_BL, OUTPUT);
   digitalWrite(TFT_BL, HIGH);
   ledcSetup(0 /* LEDChannel */, 5000 /* freq */, 8 /* resolution */);
   ledcAttachPin(TFT_BL, 0 /* LEDChannel */);
   ledcWrite(0 /* LEDChannel */, 127); /* 0-255 */
-#endif
   screenSaverTimer = xTimerCreate("saverTimer", pdMS_TO_TICKS(14000), pdFALSE, (void*)0, reinterpret_cast<TimerCallbackFunction_t>(screenSaver));
   xTimerStart(screenSaverTimer, 0);
+#endif
 
   delay_1s.start(5000, AsyncDelay::MILLIS);
-  delay_10s.start(30000, AsyncDelay::MILLIS);
-
 }
 
 /*******************************************************************************/
