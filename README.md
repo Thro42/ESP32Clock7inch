@@ -7,6 +7,13 @@ I designt the UI with SquareLine Studio. You find the Project in Folder UI. I cr
 
 ![Node-Red](images/node-red-flow.jpg)
 
+I have a stron relation to Brazil, so I like to see the Time in Brazil. To get them I implement as senso in Homeassisten. I insert this part in configuration.yaml
+´
+sensor: 
+    - platform: worldclock
+    time_zone: America/Sao_Paulo
+    name: Zeit in Brasilien
+`
 
 ### Presence Detectedion
 I implemeted a screensaver witch dims the backlight of the Display down, after 14000ms when no presence detected from a LD2410C radar sensor. The data from LD2410C will send with MQTT topic 'uhrwohnen/presence'.
