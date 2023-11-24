@@ -5,7 +5,7 @@ Living Room Clock 7inch with ES32 and Homeassistent connect
 
 I designt the UI with SquareLine Studio. You find the Project in Folder UI. I create a Node-Red flow to read Homeassistant sensors an send them as Json via MQTT via topic 'uhrwohnen/data'. 
 
-![Node-Red](imagesnode-red-flow)
+![Node-Red](imagesnode-red-flow.jpg)
 
 
 ### Presence Detectedion
