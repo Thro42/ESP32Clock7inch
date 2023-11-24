@@ -3,20 +3,20 @@ Living Room Clock 7inch with ES32 and Homeassistent connect
 
 ![Display](images/display.jpg)
 
-I designt the UI with SquareLine Studio. You find the Project in Folder UI. I create a Node-Red flow to read Homeassistant sensors an send them as Json via MQTT via topic 'uhrwohnen/data'. 
+I designt the UI with SquareLine Studio. You find the Project in Folder UI. I create a Node-Red flow to read Homeassistant sensors an send them as Json via MQTT via topic `uhrwohnen/data`. 
 
 ![Node-Red](images/node-red-flow.jpg)
 
 I have a stron relation to Brazil, so I like to see the Time in Brazil. To get them I implement as senso in Homeassisten. I insert this part in configuration.yaml
-´
+```
 sensor: 
     - platform: worldclock
-    time_zone: America/Sao_Paulo
-    name: Zeit in Brasilien
-`
+      time_zone: America/Sao_Paulo
+      name: Zeit in Brasilien
+```
 
 ### Presence Detectedion
-I implemeted a screensaver witch dims the backlight of the Display down, after 14000ms when no presence detected from a LD2410C radar sensor. The data from LD2410C will send with MQTT topic 'uhrwohnen/presence'.
+I implemeted a screensaver witch dims the backlight of the Display down, after 14000ms when no presence detected from a LD2410C radar sensor. The data from LD2410C will send with MQTT topic `uhrwohnen/presence`.
 
 ![LD2410C](images/front_ld2410c.jpg)
 
